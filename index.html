@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cipher of Baphomet: The Awakening</title>
+  <style>
+    :root {
+      --bg: #090507;
+      --card-bg: #140b0f;
+      --accent-red: #c01b2e;
+      --border-red: #4a0d15;
+      --gold: #d4a359;
+      --dim: #7a6a70;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: #eee;
+      font-family: 'Courier New', monospace;
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .header { text-align: center; margin-bottom: 8px; }
+    .title { color: var(--accent-red); font-size: 1.25rem; font-weight: bold; letter-spacing: 2px; }
+    .sub { color: var(--gold); font-size: 0.8rem; letter-spacing: 1px; margin-top: 2px; }
+    
+    .tracker { display: flex; gap: 8px; margin: 10px 0; }
+    .stage-pip {
+      border: 1px solid var(--border-red);
+      background: var(--card-bg);
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      color: var(--dim);
+    }
+    .stage-pip.active {
+      border-color: var(--accent-red);
+      color: #fff;
+      box-shadow: 0 0 8px rgba(192, 27, 46, 0.4);
+    }
+    .stage-pip.broken {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .slots { display: flex; gap: 6px; margin: 10px 0; }
+    .slot {
+      width: 42px;
+      height: 50px;
+      border: 2px solid var(--border-red);
+      background: var(--card-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      font-weight: bold;
+      border-radius: 6px;
+      color: #fff;
+    }
+    .slot.active {
+      border-color: var(--accent-red);
+      box-shadow: 0 0 6px rgba(192, 27, 46, 0.5);
+    }
+
+    .log-box {
+      width: 100%;
+      max-width: 320px;
+      height: 130px;
+      background: #040203;
+      border: 1px solid #220b10;
+      border-radius: 6px;
+      padding: 8px;
+      overflow-y: auto;
+      font-size: 0.8rem;
+      margin-bottom: 12px;
+    }
+    .log-row {
+      display: flex;
+      justify-content: space-between;
+      color: var(--dim);
+      margin-bottom: 4px;
+    }
+    .log-row span.icons { color: #ddd; }
+
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      width: 100%;
+      max-width: 320px;
+    }
+    .btn {
+      background: var(--card-bg);
+      border: 1px solid var(--border-red);
+      color: #eee;
+      padding: 12px 0;
+      font-size: 1.2rem;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .btn:active { background: var(--border-red); }
+    .btn.clear { color: var(--gold); font-size: 0.85rem; }
+    .btn.chant { color: var(--accent-red); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="title">&#10017; CIPHER OF BAPHOMET &#10017;</div>
+    <div class="sub">THE AWAKENING &bull; 666 TRIFECTA</div>
+  </div>
+
+  <div class="tracker">
+    <div id="pip1" class="stage-pip active">SEAL I</div>
+    <div id="pip2" class="stage-pip">SEAL II</div>
+    <div id="pip3" class="stage-pip">SEAL III</div>
+  </div>
+
+  <div class="slots" id="slotDisplay">
+    <div class="slot"></div>
+    <div class="slot"></div>
+    <div class="slot"></div>
+    <div class="slot"></div>
+    <div class="slot"></div>
+    <div class="slot"></div>
+  </div>
+
+  <div class="log-box" id="logBox"></div>
+
+  <div class="keypad">
+    <button class="btn" onclick="press('1')">1</button>
+    <button class="btn" onclick="press('2')">2</button>
+    <button class="btn" onclick="press('3')">3</button>
+    <button class="btn" onclick="press('4')">4</button>
+    <button class="btn" onclick="press('5')">5</button>
+    <button class="btn" onclick="press('6')">6</button>
+    <button class="btn" onclick="press('7')">7</button>
+    <button class="btn" onclick="press('8')">8</button>
+    <button class="btn" onclick="press('9')">9</button>
+    <button class="btn clear" onclick="clearInput()">CLEAR</button>
+    <button class="btn" onclick="press('0')">0</button>
+    <button class="btn chant" onclick="submitChant()">CHANT</button>
+  </div>
+
+  <script>
+    // Supabase Configuration
+    const SUPABASE_URL = "https://uwkzxtryxmjivsfrtgqc.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_g7ZqFdDkdyu5JuNPZJxL0w_gAnZyLmg"; // Paste sb_publish... here
+
+    const SESSION_ID = "sess_" + Math.random().toString(36).substring(2, 9);
+    let stage = 1;
+    let target = generateSeal();
+    let currentInput = "";
+    let stageAttempts = [];
+    let isLocked = false;
+
+    function generateSeal() {
+      const nums = [0,1,2,3,4,5,6,7,8,9];
+      for (let i = nums.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [nums[i], nums[j]] = [nums[j], nums[i]];
+      }
+      return nums.slice(0, 6).join('');
+    }
+
+    function renderSlots() {
+      const slots = document.querySelectorAll('#slotDisplay .slot');
+      slots.forEach((el, i) => {
+        if (i < currentInput.length) {
+          el.textContent = currentInput[i];
+          el.classList.add('active');
+        } else {
+          el.textContent = '';
+          el.classList.remove('active');
+        }
+      });
+    }
+
+    function updatePips() {
+      for (let i = 1; i <= 3; i++) {
+        const pip = document.getElementById(`pip${i}`);
+        pip.className = 'stage-pip';
+        if (i < stage) pip.classList.add('broken');
+        else if (i === stage) pip.classList.add('active');
+      }
+    }
+
+    function press(d) {
+      if (isLocked) return;
+      if (currentInput.length < 6) {
+        currentInput += d;
+        renderSlots();
+      }
+    }
+
+    function clearInput() {
+      if (isLocked) return;
+      currentInput = "";
+      renderSlots();
+    }
+
+    function evaluateChant(guess, answer) {
+      let exact = 0, misplaced = 0;
+      let targetRem = [], guessRem = [];
+      for (let i = 0; i < 6; i++) {
+        if (guess[i] === answer[i]) exact++;
+        else {
+          targetRem.push(answer[i]);
+          guessRem.push(guess[i]);
+        }
+      }
+      for (let i = 0; i < guessRem.length; i++) {
+        const idx = targetRem.indexOf(guessRem[i]);
+        if (idx !== -1) {
+          misplaced++;
+          targetRem.splice(idx, 1);
+        }
+      }
+      return { exact, misplaced };
+    }
+
+    async function syncToSupabase(isBroken) {
+      const payload = {
+        session_id: SESSION_ID,
+        mode: '666_TRIFECTA',
+        seal_stage: stage,
+        winning_seal: target,
+        chants_used: stageAttempts.length,
+        is_broken: isBroken,
+        attempts: stageAttempts
+      };
+
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/baphomet_awakening_logs`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.error('Telemetry offline:', err);
+      }
+    }
+
+    function submitChant() {
+      if (isLocked || currentInput.length !== 6) return;
+
+      const evalResult = evaluateChant(currentInput, target);
+      const attemptNumber = stageAttempts.length + 1;
+      const record = {
+        chantNumber: attemptNumber,
+        guess: currentInput,
+        pentagrams: evalResult.exact,
+        crosses: evalResult.misplaced
+      };
+      stageAttempts.push(record);
+
+      const log = document.getElementById('logBox');
+      const row = document.createElement('div');
+      row.className = 'log-row';
+      row.innerHTML = `<span>[#${attemptNumber}] ${currentInput}</span><span class="icons">&#9733; ${evalResult.exact} | &#10013; ${evalResult.misplaced}</span>`;
+      log.prepend(row);
+
+      clearInput();
+
+      if (evalResult.exact === 6) {
+        syncToSupabase(true);
+        if (stage < 3) {
+          stage++;
+          updatePips();
+          target = generateSeal();
+          stageAttempts = [];
+          log.innerHTML = `<div style="color:var(--gold); text-align:center; padding:4px;">-- SEAL UNLOCKED. PROCEED TO NEXT --</div>` + log.innerHTML;
+        } else {
+          isLocked = true;
+          updatePips();
+          alert("THE 666 TRIFECTA IS BROKEN. THE AWAKENING IS COMPLETE.");
+        }
+      } else if (stageAttempts.length >= 8) {
+        isLocked = true;
+        syncToSupabase(false);
+        alert(`SEAL FAILED. Target was: ${target}`);
+      }
+    }
+  </script>
+</body>
+</html>
